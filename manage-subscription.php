@@ -18,43 +18,58 @@
  */
 
  if (! defined('ABSPATH' ) ) {
-    exit;
+    die;
  }
 
+ require_once __DIR__ . '/vendor/autoload.php';
+
+
  final class ManageSubscription {
-    /**
-     * Manager Subscription version
+   /**
+     * plugin version
      *
      * @var string
      */
-    public $version = '1.0.0';
-
-    /**
-     * Get query instance
-     *
-     * @var ManageSubs_Query object
-     */
-    public $query;
-
-    /**
-     * single instance of the class
-     *
-     * @var object
-     */
-    protected static $instance = null;
+    const VERSION = '1.0';
 
     public function __construct() {
-        require_once $this->plugin_url() . '/vendor/autoload.php';
 
+        $this->define_constants();
         $this->initPluginDependencies();
-        
-        if (true !== $this->wcPluginCheck()) {
-            return;
-        }
-        $this->defineConstants();
 
-        return;
+        register_activation_hook(__FILE__, [$this, 'activate']);
+        add_action('plugins_loaded', [$this, 'initPlugin']);
     }
+
+    /**
+	 * initializes a singleton instance
+	 */
+	public static function init() {
+		
+		static $instance = false;
+
+		if ( !$instance ) {
+			$instance = new self();
+		}
+
+		return $instance;
+	}
+
+    public function initPlugin() {
+        if (is_admin()) {
+            new Xpeed\ManageSubscription\Admin\ManageSubscriptionMenu();
+        }
+    }
+
+    /**
+	 * Do stuff upon plugin activation
+	 * 
+	 * @return void
+	 */
+	public function activate() {
+        
+		
+	}
 
     /**
      * Plugin Dependencies Check
@@ -63,12 +78,11 @@
      */
     private function initPluginDependencies()
     {
-        include_once ABSPATH . 'wp-admin/includes/plugin.php';
         add_action('init', array($this, 'preventHeaderSentProblem'), 1);
         add_action('admin_notices', array($this, 'woocommerceDependencyNotices'));
     }
 
-    	/**
+    /**
 	 * Output a admin notice when plugin dependencies not met.
 	 */
 	public function woocommerceDependencyNotices() {
@@ -116,34 +130,28 @@
 	}
 
     /**
-     * Version
-     *
-     * @return string
-     */
-    public function version() {
-        return $this->version;
-    }
-
-    /**
-     * getting plugin directory
-     *
-     * @return string
-     */
-    public function plugin_url(){
-		return trailingslashit(plugin_dir_path( __FILE__ ));
+	 * define required constants
+	 * 
+	 * @return void
+	 */
+	public function define_constants() {
+		define( 'MS_VERSION', self::VERSION );
+        define( 'MS_FILE', __FILE__ );
+		define( 'MS_PATH', __DIR__ );
+		define( 'MS_URL', plugins_url( '', MS_FILE ) );
+		define( 'MS_ASSETS', MS_URL . '/assets' );
 	}
-
-    function defineConstants()
-    {
-        define('MANAGE_SUBSCRIPTION_VERSION', $this->version);
-        define('MANAGE_SUBSCRIPTION_CRON_INTERVAL', 300); //in seconds
-        define('MANAGE_SUBSCRIPTION_PLUGIN_FILE', __FILE__);
-        // define('MANAGE_SUBSCRIPTION_TEMPLATE_PATH', MANAGE_SUBSCRIPTION_PLUGIN_DIR . 'templates/');
-        define('MANAGE_SUBSCRIPTION_PLUGIN_BASENAME', plugin_basename(MANAGE_SUBSCRIPTION_PLUGIN_FILE));
-        define('MANAGE_SUBSCRIPTION_PLUGIN_BASENAME_DIR', trailingslashit(dirname(MANAGE_SUBSCRIPTION_PLUGIN_BASENAME)));
-        define('MANAGE_SUBSCRIPTION_PLUGIN_DIR', plugin_dir_path(MANAGE_SUBSCRIPTION_PLUGIN_FILE));
-        define('MANAGE_SUBSCRIPTION_PLUGIN_URL', untrailingslashit(plugins_url('/', MANAGE_SUBSCRIPTION_PLUGIN_FILE)));
-    }
  }
 
- new ManageSubscription();
+/**
+ * Initializes the main plugin
+ *
+ * @return \HelloWorldPlugin
+ *
+ */
+function manage_subscription_plugin()
+{
+    return ManageSubscription::init();
+}
+
+manage_subscription_plugin();
